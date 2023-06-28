@@ -110,12 +110,20 @@ class PipInstaller(object):
             # This is happening in a temporary directory, so we will just
             # overwrite the setup.py to add our own imports.
             setup_py = os.path.join(source, "setup.py")
+            new_imports = ["import setuptools\n", "import wheel\n"]
             with open(setup_py, "r") as f:
-                original = f.read()
-            with open(setup_py, "w") as f:
-                f.write("import setuptools\n")
-                f.write("import wheel\n")
-                f.write(original)
+                lines = f.readlines()
+            with open(setup_py, "w") as f_out:
+                for line in lines:
+                    if "__future__" in line:
+                        f_out.write(line)
+                    # all setup.py files will have at least one 'import' line
+                    elif "import" in line:
+                        while new_imports:
+                            f_out.write(new_imports.pop())
+                        f_out.write(line)
+                    else:
+                        f_out.write(line)
             # Build the wheel
             command = [
                 sys.executable,
